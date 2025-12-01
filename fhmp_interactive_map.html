@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FHMP Photo & Site Map</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-sA+e2AtXtXhKQxXQxH42gFluLwQF1rCjH1jQ0Pp3pVk=" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+<style>
+  html, body { height: 100%; margin: 0; }
+  #map { width: 100%; height: 100vh; }
+  .popup-img { max-width: 280px; max-height: 280px; border: 1px solid #ccc; border-radius: 3px; }
+  .popup-content { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; font-size: 13px; }
+  .legend { background: white; padding: 6px 8px; font-size: 12px; box-shadow: 0 0 15px rgba(0,0,0,0.2); border-radius: 4px; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-o9N1j7kGStb0v6rDa2wG2JqGQfKxWv7pY3v3E7Z1jmc=" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script>
+// Base map
+const map = L.map('map');
+const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 18,
+  attribution: '&copy; OpenStreetMap contributors'
+});
+osm.addTo(map);
+
+// Layer containers
+const photoCluster = L.markerClusterGroup({
+  showCoverageOnHover: false,
+  maxClusterRadius: 40
+});
+const sitesLayerGroup = L.layerGroup();
+
+// Utility: safe text
+function esc(s) {
+  if (s === undefined || s === null) return '';
+  return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+}
+
+// Utility: build popup HTML for photos
+function photoPopup(props) {
+  const title = esc(props.XMP_Title || props.Title || props.title || '');
+  const site  = esc(props.SiteID || props.site || props.Site || '');
+  const file  = esc(props.SourceFile || '');
+  const imgRel = esc(props.img_rel || '');
+  const imgSrc = imgRel || file; // prefer relative path field
+  const dist  = (props.Distance_m !== undefined) ? Number(props.Distance_m).toFixed(2) : '';
+  const lat   = (props.Latitude !== undefined) ? Number(props.Latitude).toFixed(6) : '';
+  const lon   = (props.Longitude !== undefined) ? Number(props.Longitude).toFixed(6) : '';
+  const imgTag = imgSrc ? `<img class="popup-img" src="${imgSrc}" alt="${title}">` : '<em>No image path</em>';
+  return `
+    <div class="popup-content">
+      ${title ? `<div><strong>${title}</strong></div>` : ''}
+      ${site ? `<div>Site: ${site}</div>` : ''}
+      ${dist ? `<div>Nearest corner distance: ${dist} m</div>` : ''}
+      ${(lat && lon) ? `<div>Lat/Lon: ${lat}, ${lon}</div>` : ''}
+      <div style="margin-top:6px;">${imgTag}</div>
+      ${file ? `<div style="margin-top:4px; color:#666;">Source: ${file}</div>` : ''}
+    </div>`;
+}
+
+// Utility: build popup HTML for sites
+function sitePopup(props) {
+  const siteId = esc(props.Site_ID || props.SiteID || '');
+  const plot   = esc(props.PlotName || '');
+  const name   = esc(props.Name || '');
+  const code   = esc(props.Code || '');
+  return `
+    <div class="popup-content">
+      <div><strong>${name || plot || siteId || code || 'Site'}</strong></div>
+      ${siteId ? `<div>Site ID: ${siteId}</div>` : ''}
+      ${plot   ? `<div>Plot: ${plot}</div>` : ''}
+      ${code   ? `<div>Code: ${code}</div>` : ''}
+    </div>`;
+}
+
+// Load Photos GeoJSON
+fetch('photos.geojson')
+  .then(r => r.json())
+  .then(geojson => {
+    const photosLayer = L.geoJSON(geojson, {
+      pointToLayer: function (feature, latlng) {
+        return L.marker(latlng, { title: feature.properties?.XMP_Title || feature.properties?.Title || '' });
+      },
+      onEachFeature: function (feature, layer) {
+        const html = photoPopup(feature.properties || {});
+        layer.bindPopup(html, { maxWidth: 320 });
+      }
+    });
+    photoCluster.addLayer(photosLayer);
+    map.addLayer(photoCluster);
+    try { map.fitBounds(photoCluster.getBounds(), { padding: [20,20] }); } catch(e) {}
+  })
+  .catch(err => console.error('Failed to load photos.geojson', err));
+
+// Load Sites GeoJSON
+fetch('sites.geojson')
+  .then(r => r.json())
+  .then(geojson => {
+    const sitesLayer = L.geoJSON(geojson, {
+      pointToLayer: function (feature, latlng) {
+        return L.circleMarker(latlng, {
+          radius: 6,
+          color: '#0b7285',
+          weight: 2,
+          fillColor: '#74c0fc',
+          fillOpacity: 0.8
+        });
+      },
+      onEachFeature: function (feature, layer) {
+        const html = sitePopup(feature.properties || {});
+        layer.bindPopup(html, { maxWidth: 320 });
+      }
+    });
+    sitesLayerGroup.addLayer(sitesLayer);
+    map.addLayer(sitesLayerGroup);
+  })
+  .catch(err => console.error('Failed to load sites.geojson', err));
+
+// Layer control
+const overlays = {
+  'Photo points (clustered)': photoCluster,
+  'Site points': sitesLayerGroup
+};
+L.control.layers({ 'OpenStreetMap': osm }, overlays, { collapsed: false }).addTo(map);
+
+// Simple legend
+const legend = L.control({position: 'bottomright'});
+legend.onAdd = function () {
+  const div = L.DomUtil.create('div', 'legend');
+  div.innerHTML = '<div><span style="display:inline-block;width:12px;height:12px;background:#74c0fc;border:2px solid #0b7285;margin-right:6px;"></span>Site points</div>'+
+                  '<div style="margin-top:4px;"><span style="display:inline-block;width:12px;height:12px;background:#2b8a3e;margin-right:6px;"></span>Photo points (clustered)</div>';
+  return div;
+};
+legend.addTo(map);
+</script>
+</body>
+</html>
