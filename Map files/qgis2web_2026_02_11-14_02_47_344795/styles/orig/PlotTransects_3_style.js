@@ -1,7 +1,7 @@
 var size = 0;
 var placement = 'point';
 
-var style_Flora2025_4 = function(feature, resolution){
+var style_PlotTransects_3 = function(feature, resolution){
     var context = {
         feature: feature,
         variables: {}
@@ -9,20 +9,19 @@ var style_Flora2025_4 = function(feature, resolution){
     
     var labelText = ""; 
     var value = feature.get("");
-    var labelFont = "10px, sans-serif";
-    var labelFill = "#000000";
+    var labelFont = "13.0px \'Open Sans\', sans-serif";
+    var labelFill = "#323232";
     var bufferColor = "";
     var bufferWidth = 0;
     var textAlign = "left";
     var offsetX = 0;
     var offsetY = 0;
-    var placement = 'point';
+    var placement = 'line';
     if ("" !== null) {
         labelText = String("");
     }
     var style = [ new ol.style.Style({
-        image: new ol.style.RegularShape({radius: 5.999999999999998 + size, points: 3,
-            displacement: [0, 0], stroke: new ol.style.Stroke({color: 'rgba(128,17,25,1.0)', lineDash: null, lineCap: 'butt', lineJoin: 'miter', width: 1.52}), fill: new ol.style.Fill({color: 'rgba(253,4,212,1.0)'})}),
+        stroke: new ol.style.Stroke({color: 'rgba(255,96,17,1.0)', lineDash: null, lineCap: 'round', lineJoin: 'round', width: 2.508}),
         text: createTextStyle(feature, resolution, labelText, labelFont,
                               labelFill, placement, bufferColor,
                               bufferWidth)
