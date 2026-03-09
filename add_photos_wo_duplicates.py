@@ -4,7 +4,7 @@ import shutil
 repo_dir = "photos/phone_flora/2025"
 
 # 👇 CHANGE THIS EACH TIME to your camera dump location
-incoming_dir = r"C:\FHMP\Photo_locations\phone_flora\temp"
+incoming_dir = r"C:\FHMP\Photo_locations\phone_flora"
 
 existing = set()
 duplicates = []
