@@ -1,17 +1,160 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta http-equiv="refresh"
-          content="0; url=Map%20files/qgis2web_2025_12_16-10_40_52_412970/" />
-    <title>FHMP Interactive Map</title>
-  </head>
-  <body>
-    <p>Redirecting to the map…</p>
-    <p>
-      If you are not redirected,
-      <a href="Map%20files/qgis2web_2025_12_16-10_40_52_412970/">click here</a>.
-    </p>
-  </body>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FHMP Interactive Map</title>
+
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: #ffffff;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    }
+
+    /* Fullscreen iframe */
+    #mapframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+    }
+
+    /* Loading overlay */
+    #loading {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(255, 255, 255, 0.92);
+      z-index: 9999;
+      transition: opacity 280ms ease;
+    }
+    #loading.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Spinner */
+    .spinner {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      border: 6px solid #e6e6e6;
+      border-top-color: #2b7cff;
+      animation: spin 0.9s linear infinite;
+      margin: 0 auto 14px auto;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-card {
+      text-align: center;
+      padding: 18px 22px;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+      background: #fff;
+      max-width: 360px;
+    }
+
+    .loading-title {
+      font-size: 16px;
+      font-weight: 650;
+      margin: 0 0 6px 0;
+      color: #1b1b1b;
+    }
+
+    .loading-sub {
+      font-size: 13px;
+      margin: 0;
+      color: #4a4a4a;
+      line-height: 1.35;
+    }
+
+    .fallback {
+      margin-top: 12px;
+      font-size: 13px;
+    }
+
+    .fallback a {
+      color: #2b7cff;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .fallback a:hover { text-decoration: underline; }
+
+    /* “Taking a while” message (hidden until needed) */
+    #slow {
+      display: none;
+      margin-top: 10px;
+      font-size: 12px;
+      color: #7a2e00;
+      background: #fff2e8;
+      border: 1px solid #ffd7c2;
+      border-radius: 10px;
+      padding: 10px 12px;
+      text-align: left;
+    }
+    #slow code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 11px;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Loading overlay -->
+  <div id="loading" role="status" aria-live="polite">
+    <div class="loading-card">
+      <div class="spinner" aria-hidden="true"></div>
+      <p class="loading-title">Loading FHMP map…</p>
+      <p class="loading-sub">Fetching layers and styles from GitHub Pages.</p>
+
+      <div id="slow">
+        <strong>Still loading?</strong><br />
+        If this is on a slow connection, give it a moment. You can also open the map directly:<br />
+        <code id="directUrlText"></code>
+      </div>
+
+      <p class="fallback">
+        Or <a id="directUrlLink" href="#">open the map directly</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- IFRAME: loads your actual qgis2web export page -->
+  <iframe
+    id="mapframe"
+    title="FHMP Interactive Map"
+    src="Map%20files/qgis2web_2025_12_16-10_40_52_412970/">
+  </iframe>
+
+  <script>
+    (function () {
+      const iframe = document.getElementById("mapframe");
+      const loading = document.getElementById("loading");
+      const slow = document.getElementById("slow");
+      const directUrlLink = document.getElementById("directUrlLink");
+      const directUrlText = document.getElementById("directUrlText");
+
+      // Build a fully-qualified direct URL for the fallback link/text
+      const directUrl = new URL(iframe.getAttribute("src"), window.location.href).toString();
+      directUrlLink.href = directUrl;
+      directUrlText.textContent = directUrl;
+
+      // Hide loading overlay when iframe finishes loading
+      iframe.addEventListener("load", () => {
+        loading.classList.add("hidden");
+        // Remove overlay after fade-out (optional)
+        setTimeout(() => loading.remove(), 320);
+      });
+
+      // If loading takes longer than 8 seconds, show a helpful hint
+      setTimeout(() => {
+        if (document.body.contains(loading)) slow.style.display = "block";
+      }, 8000);
+    })();
+  </script>
+</body>
 </html>
